@@ -1,0 +1,172 @@
+==数组转换集合
+List list = Arrays.asList(materialId);
+
+
+==判断两个集合之间中的对象类容是否完全相同
+boolean flag = list.containsAll(list2);
+
+
+==Inteage转字符串
+String str = String.valueOf(666);
+
+
+==BigDecimal的加减乘除算法？
+	加：A.add(B)
+	减：A.subtract(B)
+	乘：A.multiply(B)
+	除：A.divide(B)
+        比较：	A.compareTo(B)
+ 		BigDecimal A = new BigDecimal(12.5);
+        	BigDecimal B= new BigDecimal(88.8);
+        	BigDecimal C= new BigDecimal(88.8);
+	      	A.compareTo(B)返回：-1     B.compareTo(A)返回：1      B.compareTo(C)返回：0 
+
+
+==将时间字符转换为Date类型？
+    String a = "2020-10-25 13:13:13";
+    SimpleDateFormat simpleDateFormat=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+    Date date = simpleDateFormat.parse(a)         //字符-->对象
+    String time = simpleDateFormat.format(date)   //对象-->字符
+    date.after(new Date())                        //比较日期对象  after：之后  before:之前
+
+
+==将Object对象转换为实体对象？
+    Object object = businessFeign.getBusiness(businessId).getData();
+    Business business = Business.class.cast(object);
+
+
+==获取配置文件信息的方法：
+	order:
+             times: 2000
+        示例： @Value("${order.times}")
+    	       private String delayTimes;
+    
+
+******************************************************************************MyabtisPlus使用*****************************************************************
+Mybatisplus只更新某个指定的字段方法？
+   示例：User user = new User();
+         user.setName("Tom"）
+	 QueryWrapper<User> queryWrapper = new QueryWrapper<>()
+	 queryWrapper .eq("id",10)
+         this.update(user,queryWrapper )
+         **:通过ID只更新用户姓名这个字段
+
+Mybatisplus查询的时候不查询某个字段有值的数据？----isNull
+   示例： queryWrapper.isNull(true,"deleted_time")
+
+
+MybatisPlus查询是定数据字段？
+   示例： QueryWrapper<Good> query = new QueryWrapper<>();
+          query.select("gid","A","B");   		//写上要查询的字段名称，多个用逗号隔开
+          query.like("title",goodName);
+
+
+MybatisPlus中查询某个范围之外的数据---notBetween
+   示例： QueryWrapper<Good> query = new QueryWrapper<>();
+          query.notBetween("age",10,30)   		//介于10---30这个区间范围之外的年龄
+
+MybatisPlus中使用inSql查询，自定义sql语句 ----inSql
+   示例：QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+          queryWrapper.inSql("uid","select uid from user where uid>1");   //
+
+        *注意与in查询的区别，in查询是query.in("",List<Integer>) 集合形式
+
+MybatisPlus的时候，只用updateById()方法？
+        User user = new User();
+        user.setId(1);
+	user.setName("曾明");
+        ***只要存在主键ID，使用此方法，只会对自己赋值了参数进行更新，[如果还有年龄，性别，爱好等字段，没有赋值，不会更新]。可以不使用条件构造器去构造一个对象来赋值【*重要】
+
+****************************************************************************注意事项*************************************************************************
+①调用Integer的valueOf()方法，如果int在-128和127之间的时候，会直接使用jvm中缓存的数组 Integer（也就是常量池）中的对象引用，否则使用new一个 Integer 对象
+示例：Integer.valueOf(128) == Integer.valueOf(128)   结果：false
+      Integer.valueOf(127) == Integer.valueOf(127)   结果：true
+      ----:两个Integer对象的判断使用.equals进行判断
+
+②使用redis缓存，删除指定key的缓存：
+     RedisTemplate 与 StringRedisTemplate 是不一样的，注意序列化规则，写入使用的哪个序列化规则，在删除的时候就必须使用哪个序列化规则【否则产生的错误：不会有报错信息，但是服务器缓存数据依然存在】
+
+11
+
+
+
+****************************************************************************关于数据库************************************************************************
+①.数据库事务
+   @Transactional(rollbackFor = Exception.class) ----这是一个父类异常，如果使用了try捕获异常，就必须手动抛出异常
+   int p = 1;
+   mapper.insert(p);---这里执行了插入语句
+   if ( p == 1){  throw new ClassCastException("类型错误,回滚");} ---抛出了异常，会回滚这个数据（并且会将这个自定义的异常信息，返回给前端）
+
+②：数据库查询返回VO，一对多的通用结果映射配置【一个VO对象里又包含一个对象集合】
+     <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.entity.test.TestVo">
+        <id column="id" property="id" />
+        <result column="tel" property="tel" />
+        <result column="age" property="age" />
+        <collection property="list" ofType="com.entity.test.TestGood" column="id">   ***重要，关联的主键----column="id"   没有此参数就错了
+            <result column="tid" property="tid" />
+            <result column="good" property="good" />
+        </collection>
+    </resultMap>
+
+
+    <select id="getAll" resultMap="BaseResultMap">
+        select * from test1 t1 join test_good td on t1.id = td.tid where td.tid in (select  id from test1)
+
+    </select>
+
+
+*****************************************************************************hutool工具类*********************************************************************
+①==hutool工具将时间对象转换为字符串方法？
+    DateTime dateTime = new DateTime(new Date()).toString();
+
+②==将json字符串转换为json对象
+   String jsonStr = "{\"b\":\"value2\",\"c\":\"value3\",\"a\":\"value1\"}";
+   JSONObject jsonObject = JSONUtil.parseObj(jsonStr);    //方法一：使用工具类转换
+   JSONObject jsonObject2 = new JSONObject(jsonStr);     //方法二：new的方式转换
+
+③==类型转换工具类-Convert
+    1.int a = 123 ,     String aStr = Convert.toStr(a);                                       int转字符串
+    2.long[] b = {1,2,3,4,5};  String bStr = Convert.toStr(b);                                数组转换字符串（"[1, 2, 3, 4, 5]"） 
+    3.String[] b = { "1", "2", "3", "4" };  Integer[] intArray = Convert.toIntArray(b);       String类型数组转换为Integer数组---*其他类型数组也可以
+    4.String a = "2017-05-06 23：59:59";  Date value = Convert.toDate(a);                     时间字符转换为时间对象
+    5.Object[] a = {"a", "你", "好", "", 1};  List<?> list = Convert.convert(List.class, a);  Object对象转换为List集合
+    **---通过Convert.convert(Class<T>, Object)方法可以将任意类型转换为指定类型。----自定义类型转换
+    示例：我们想转换一个对象为List<String>类型
+          Object[] a = { "a", "你", "好", "", 1 };
+          List<String> list = Convert.convert(new TypeReference<List<String>>() {}, a);
+ 
+    6.时间单位转换【毫秒转分钟】    long a = 4535345;
+                                    long minutes = Convert.convertTime(a, TimeUnit.MILLISECONDS, TimeUnit.MINUTES);  （结果：75）
+    7.金额大小写转换                double a = 67556.32;
+		                    String digitUppercase = Convert.digitToChinese(a);  （结果："陆万柒仟伍佰伍拾陆元叁角贰分"）
+
+*--更多时间的处理查找工具类：DateUtil 与 DateTime 两个类
+
+④==集合工具-CollUtil
+   1.String[] col= new String[]{"a","b","c","d","e"};
+     List<String> colList = CollUtil.newArrayList(col);     数组转换集合
+     String str = CollUtil.join(colList, ",")               集合转换字符串（结果：a,b,c,d,e）
+   2.*2. sortPageAll、sortPageAll2方法---重要，这个方法非常类似于数据库多表查询后排序分页，这个方法存在的意义也是在此（地址：https://hutool.cn/docs/#/core/%E9%9B%86%E5%90%88%E7%B1%BB/%E9%9B%86%E5%90%88%E5%B7%A5%E5%85%B7-CollUtil?id=_2-sortpageall%e3%80%81sortpageall2%e6%96%b9%e6%b3%95）
+
+⑤==Base64编码解码-Base64
+    1.String a = "伦家是一个非常长的字符串";
+     String encode = Base64.encode(a);             编码（结果：5Lym5a625piv5LiA5Liq6Z2e5bi46ZW/55qE5a2X56ym5Liy）
+     String decodeStr = Base64.decodeStr(encode);  解码（还原为a）
+
+⑥==字符串切割-StrSpliter
+    1.String str1 = "a, ,efedsfs,   ddf";    *：split 切分字符串，众多可选参数，返回结果为【List】
+      List<String> split = StrSpliter.split(str1, ',', 0, true, true);   参数：被切分字符串，分隔符逗号，0表示无限制分片数，去除两边空格，忽略空白项
+
+⑦==注解工具-AnnotationUtil 【*自定义注解的时候看文档   地址：https://hutool.cn/docs/#/core/%E6%B3%A8%E8%A7%A3/%E6%B3%A8%E8%A7%A3%E5%B7%A5%E5%85%B7-AnnotationUtil】
+
+
+
+
+
+
+
+
+
+
+
